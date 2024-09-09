@@ -1,17 +1,19 @@
-from celery import Celery
 from elasticsearch import Elasticsearch
 import os
-
-# Initialize Celery
-celery_app = Celery('tasks', 
-                    broker=os.environ.get("RABBITMQ_URL", "amqp://localhost"),
-                    backend='rpc://')
+from .celery_app import celery_app
 
 # Initialize Elasticsearch client
 es_host = os.environ.get("ELASTICSEARCH_HOST", "localhost")
 es_port = os.environ.get("ELASTICSEARCH_PORT", "9200")
 es_url = f"http://{es_host}:{es_port}"
-es = Elasticsearch([es_url])
+
+es_username = os.environ.get("ELASTICSEARCH_USERNAME")
+es_password = os.environ.get("ELASTICSEARCH_PASSWORD")
+
+if es_username and es_password:
+    es = Elasticsearch([es_url], http_auth=(es_username, es_password))
+else:
+    es = Elasticsearch([es_url])
 
 def create_index_if_not_exists():
     """
@@ -28,9 +30,7 @@ def create_index_if_not_exists():
             }
         })
 
-        
-
-@celery_app.task(name='tasks.index_blog_post')
+@celery_app.task(name='index_blog_post')
 def index_blog_post(blog_post):
     """
     Index a blog post in Elasticsearch.

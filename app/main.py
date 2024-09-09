@@ -1,9 +1,9 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from elasticsearch import Elasticsearch, exceptions as es_exceptions
-from celery import Celery
 import os
-from tasks import create_index_if_not_exists
+from celery_tasks.tasks import create_index_if_not_exists
+from celery_tasks.celery_app import celery_app
 
 app = FastAPI()
 
@@ -23,17 +23,18 @@ if es_username and es_password:
 else:
     es = Elasticsearch([es_url])
 
-
-# Initialize Celery with result backend
-celery_app = Celery('tasks',
-                    broker=os.getenv("RABBITMQ_URL", "amqp://localhost"),
-                    backend='rpc://', broker_connection_retry_on_startup=True)
-
 class BlogPost(BaseModel):
+    """
+    Model representing a blog post.
+
+    Attributes:
+        blog_title (str): The title of the blog post.
+        blog_text (str): The content of the blog post.
+        user_id (str): The ID of the user who created the blog post.
+    """
     blog_title: str
     blog_text: str
     user_id: str
-
 
 @app.post("/submit_blog")
 async def submit_blog(blog_post: BlogPost):
@@ -47,7 +48,7 @@ async def submit_blog(blog_post: BlogPost):
         dict: Confirmation message and task ID.
     """
     create_index_if_not_exists()
-    task = celery_app.send_task('tasks.index_blog_post', args=[blog_post.model_dump()])
+    task = celery_app.send_task('index_blog_post', args=[blog_post.model_dump()])
     return {"message": "Blog post submitted successfully", "task_id": task.id}
 
 @app.get("/task_status/{task_id}")
@@ -126,4 +127,3 @@ async def rabbitmq_health():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
-

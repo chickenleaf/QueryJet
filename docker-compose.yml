@@ -6,11 +6,13 @@ services:
     image: elasticsearch:7.14.0
     environment:
       - discovery.type=single-node
+      - xpack.security.enabled=true
+      - ELASTIC_PASSWORD=password
     ports:
       - 9200:9200
       - 9300:9300
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9200"]
+      test: ["CMD", "curl", "-u", "elastic:password", "-f", "http://localhost:9200"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -31,7 +33,7 @@ services:
 
   celery:
     build: .
-    command: celery -A tasks worker -P threads
+    command: celery -A celery_tasks.celery_app worker -P threads
     environment:
       - ELASTICSEARCH_HOST=elasticsearch
       - ELASTICSEARCH_PORT=9200

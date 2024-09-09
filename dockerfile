@@ -11,7 +11,8 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the application code into the container
-COPY . .
+COPY app /app/app
+COPY celery_tasks /app/celery_tasks
 
 # Set the environment variables
 ENV ELASTICSEARCH_HOST=elasticsearch
@@ -20,5 +21,6 @@ ENV ELASTICSEARCH_USERNAME=elastic
 ENV ELASTICSEARCH_PASSWORD=password
 ENV RABBITMQ_URL=amqp://rabbitmq:5672
 
-# Run the application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Command to run the ASGI app (default command, can be overridden by docker-compose)
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
