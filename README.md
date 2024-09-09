@@ -4,10 +4,10 @@ A FastAPI-based application that utilizes Celery for asynchronous task processin
 
 ## Features
 
-- **FastAPI**: A modern web framework for building APIs with Python.
-- **Celery**: A distributed task queue to handle asynchronous processing.
-- **Elasticsearch**: A search engine to index and query blog posts.
-- **Docker**: Containerization for consistent environments and easy deployment.
+- **FastAPI**: Enables fast and efficient API development with easy-to-use asynchronous features.
+- **Celery**: Effectively manages background tasks and scales with system demands.
+- **Elasticsearch**: Provides quick search and indexing capabilities for large data sets.
+- **RabbitMQ**: Offers reliable message brokering and scalable task distribution.
 
 ## Table of Contents
 
