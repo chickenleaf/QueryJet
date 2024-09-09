@@ -16,8 +16,6 @@ A FastAPI-based application that utilizes Celery for asynchronous task processin
 - [Testing](#testing)
 - [Docker](#docker)
 - [API Endpoints](#api-endpoints)
-- [Contributing](#contributing)
-- [License](#license)
 
 ## Installation
 
