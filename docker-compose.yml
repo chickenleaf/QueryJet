@@ -40,6 +40,7 @@ services:
       - ELASTICSEARCH_USERNAME=elastic
       - ELASTICSEARCH_PASSWORD=password
       - RABBITMQ_URL=amqp://rabbitmq:5672
+      - PYTHONPATH=/app
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -56,6 +57,7 @@ services:
       - ELASTICSEARCH_HOST=elasticsearch
       - ELASTICSEARCH_PORT=9200
       - RABBITMQ_URL=amqp://rabbitmq:5672
+      - PYTHONPATH=/app
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -73,6 +75,7 @@ services:
     environment:
       - ELASTICSEARCH_HOST=elasticsearch
       - ELASTICSEARCH_PORT=9200
+      - PYTHONPATH=/app
     depends_on:
       elasticsearch:
         condition: service_healthy

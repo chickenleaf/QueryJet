@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: search-blog
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: search-blog
+  template:
+    metadata:
+      labels:
+        app: search-blog
+    spec:
+      containers:
+      - name: search-blog
+        image: chickenleaf/search_blog:v1
+        command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+        ports:
+        - containerPort: 8000
+        env:
+        - name: ELASTICSEARCH_URL
+          valueFrom:
+            configMapKeyRef:
+              name: blog-configmap
+              key: elasticsearch_url

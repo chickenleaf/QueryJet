@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: blog-configmap
+data:
+  elasticsearch_url: "http://elasticsearch-service:9200"
+  rabbitmq_url: "amqp://rabbitmq-service:5672"

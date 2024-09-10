@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celery-tasks
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: celery-tasks
+  template:
+    metadata:
+      labels:
+        app: celery-tasks
+    spec:
+      containers:
+      - name: celery-tasks
+        image: chickenleaf/celery:v1
+        command: ["celery", "-A", "celery_tasks.celery_app", "worker", "-P", "threads"]
+        env:
+        - name: RABBITMQ_URL
+          valueFrom:
+            configMapKeyRef:
+              name: blog-configmap
+              key: rabbitmq_url
+        - name: ELASTICSEARCH_URL
+          valueFrom:
+            configMapKeyRef:
+              name: blog-configmap
+              key: elasticsearch_url

@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: submit-blog
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: submit-blog
+  template:
+    metadata:
+      labels:
+        app: submit-blog
+    spec:
+      containers:
+      - name: submit-blog
+        image: chickenleaf/submit_blog:v1
+        command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+        ports:
+        - containerPort: 8000
+        env:
+        - name: RABBITMQ_URL
+          valueFrom:
+            configMapKeyRef:
+              name: blog-configmap
+              key: rabbitmq_url

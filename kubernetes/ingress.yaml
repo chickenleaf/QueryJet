@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: blog-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  ingressClassName: nginx 
+  rules:
+  - http:
+      paths:
+      - path: /submit(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: submit-blog-service
+            port: 
+              number: 80
+      - path: /search(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: search-blog-service
+            port: 
+              number: 80
