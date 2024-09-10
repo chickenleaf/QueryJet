@@ -3,7 +3,7 @@ import os
 
 # Initialize Celery
 celery_app = Celery('celery_tasks', 
-                    broker=os.environ.get("RABBITMQ_URL", "amqp://localhost"),
+                    broker=os.environ.get("RABBITMQ_URL", "amqp://rabbitmq"),
                     backend='rpc://',
                     broker_connection_retry_on_startup=True)
 

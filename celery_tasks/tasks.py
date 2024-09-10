@@ -7,8 +7,8 @@ es_host = os.environ.get("ELASTICSEARCH_HOST", "localhost")
 es_port = os.environ.get("ELASTICSEARCH_PORT", "9200")
 es_url = f"http://{es_host}:{es_port}"
 
-es_username = os.environ.get("ELASTICSEARCH_USERNAME")
-es_password = os.environ.get("ELASTICSEARCH_PASSWORD")
+es_username = os.getenv("ELASTICSEARCH_USERNAME", "elastic")
+es_password = os.getenv("ELASTICSEARCH_PASSWORD", "password")
 
 if es_username and es_password:
     es = Elasticsearch([es_url], http_auth=(es_username, es_password))
