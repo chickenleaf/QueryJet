@@ -1,4 +1,4 @@
-# cloudSEK Assignment
+# QueryJet
 
 A FastAPI-based application that utilizes Celery for asynchronous task processing with rabbitMQ as broker and Elasticsearch for indexing and searching blog posts. The project includes Docker support for containerization and deployment.
 
@@ -19,7 +19,7 @@ A FastAPI-based application that utilizes Celery for asynchronous task processin
 
 ## Installation
 
-To set up and run the **cloudSEK** project locally, follow these steps:
+To set up and run the **QueryJet** project locally, follow these steps:
 
 1. **Clone the Repository**
 
