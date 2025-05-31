@@ -24,8 +24,8 @@ To set up and run the **QueryJet** project locally, follow these steps:
 1. **Clone the Repository**
 
    ```bash
-   git clone https://github.com/chickenleaf/cloudSEK.git
-   cd cloudSEK
+   git clone https://github.com/chickenleaf/QueryJet.git
+   cd QueryJet
    ```
 
 2. **Create and Activate a Virtual Environment**
@@ -86,7 +86,7 @@ To set up and run the **QueryJet** project locally, follow these steps:
 1. **Build the Docker Image**
 
    ```bash
-   docker build -t cloudsek .
+   docker build -t queryjet .
    ```
 
 2. **Run the Docker Container**
