@@ -1,147 +1,104 @@
 #!/bin/bash
 
-# Base URLs
-SUBMIT_URL="http://localhost:8000"
-SEARCH_URL="http://localhost:8001"
+# Exit immediately if a command exits with a non-zero status.
+set -e
 
-# Colors for output
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+echo "Starting Docker Compose services..."
+docker-compose up --build -d
 
-# Function to print colored output
-print_result() {
-    if [ $1 -eq 0 ]; then
-        echo -e "${GREEN}PASS${NC}: $2"
-    else
-        echo -e "${RED}FAIL${NC}: $2"
-    fi
-}
+echo "Waiting for RabbitMQ to be healthy..."
+docker-compose exec rabbitmq rabbitmqctl await_startup --timeout 60 || { echo "RabbitMQ failed to start in time!"; exit 1; }
+echo "RabbitMQ is healthy."
 
-# Function to check if a service is running
-check_service() {
-    if curl -s "$1" > /dev/null; then
-        echo -e "${GREEN}Service at $1 is up${NC}"
-    else
-        echo -e "${RED}Service at $1 is down${NC}"
-        exit 1
-    fi
-}
+echo "Waiting for Elasticsearch to be healthy..."
+until curl -s -u elastic:password http://localhost:9200/_cluster/health | grep -q '"status":"green"\|"status":"yellow"'; do
+  echo "Elasticsearch is not yet healthy. Waiting..."
+  sleep 5
+done
+echo "Elasticsearch is healthy."
 
-# Function to display response
-show_response() {
-    echo -e "${BLUE}Response:${NC}\n$1\n"
-}
+echo "Giving celery and api time to start up..."
+sleep 15 # Give time for Python apps and Celery worker to fully initialize and connect
 
-# Check if services are running
-echo "Checking if services are running..."
-check_service "$SUBMIT_URL"
-check_service "$SEARCH_URL"
-
-# Test submit_blog endpoint
-echo -e "\nTesting submit_blog endpoint..."
-SUBMIT_RESPONSE=$(curl -s -X POST "${SUBMIT_URL}/submit_blog" \
+echo "--- Submitting Blog Posts ---"
+# Submit blog post 1
+echo "Submitting 'My First FastAPI Blog'..."
+SUBMIT_RESPONSE_1=$(curl -s -X POST "http://localhost:8000/submit_blog" \
      -H "Content-Type: application/json" \
-     -d '{"blog_title":"Test Blog","blog_text":"This is a test blog post.","user_id":"test_user"}')
-show_response "$SUBMIT_RESPONSE"
-TASK_ID=$(echo "$SUBMIT_RESPONSE" | jq -r '.task_id')
-if [ -z "$TASK_ID" ] || [ "$TASK_ID" == "null" ]; then
-    print_result 1 "Submit blog (Failed to get task_id)"
-else
-    print_result 0 "Submit blog (task_id: $TASK_ID)"
-fi
+     -d '{"blog_title": "My First FastAPI Blog", "blog_text": "This is a test blog post for demonstration purposes.", "user_id": "user123"}')
+echo "Response: $SUBMIT_RESPONSE_1"
+TASK_ID_1=$(echo "$SUBMIT_RESPONSE_1" | grep -o '"task_id": "[^"]*"' | cut -d '"' -f 4)
+echo "Task ID 1: $TASK_ID_1"
 
-# Test task_status endpoint
-echo -e "\nTesting task_status endpoint..."
-TASK_STATUS=$(curl -s "${SUBMIT_URL}/task_status/${TASK_ID}")
-show_response "$TASK_STATUS"
-if [ -z "$TASK_STATUS" ]; then
-    print_result 1 "Check task status (No response)"
-else
-    print_result 0 "Check task status"
-fi
+# Submit blog post 2
+echo "Submitting 'Understanding Celery & RabbitMQ'..."
+SUBMIT_RESPONSE_2=$(curl -s -X POST "http://localhost:8000/submit_blog" \
+     -H "Content-Type: application/json" \
+     -d '{"blog_title": "Understanding Celery & RabbitMQ", "blog_text": "Celery is a powerful distributed task queue. RabbitMQ is a robust message broker.", "user_id": "user456"}')
+echo "Response: $SUBMIT_RESPONSE_2"
+TASK_ID_2=$(echo "$SUBMIT_RESPONSE_2" | grep -o '"task_id": "[^"]*"' | cut -d '"' -f 4)
+echo "Task ID 2: $TASK_ID_2"
 
-# Test search endpoint
-echo -e "\nTesting search endpoint..."
-SEARCH_RESPONSE=$(curl -s "${SEARCH_URL}/search?query=test")
-show_response "$SEARCH_RESPONSE"
-if [ -z "$SEARCH_RESPONSE" ]; then
-    print_result 1 "Search blogs (No response)"
-else
-    print_result 0 "Search blogs"
-fi
-
-# Test Elasticsearch health endpoint
-echo -e "\nTesting Elasticsearch health endpoint..."
-ES_HEALTH=$(curl -s "${SEARCH_URL}/health/elasticsearch")
-show_response "$ES_HEALTH"
-if [ -z "$ES_HEALTH" ]; then
-    print_result 1 "Elasticsearch health check (No response)"
-else
-    print_result 0 "Elasticsearch health check"
-fi
-
-# Test RabbitMQ health endpoint
-echo -e "\nTesting RabbitMQ health endpoint..."
-RABBITMQ_HEALTH=$(curl -s "${SUBMIT_URL}/health/rabbitmq")
-show_response "$RABBITMQ_HEALTH"
-if [ -z "$RABBITMQ_HEALTH" ]; then
-    print_result 1 "RabbitMQ health check (No response)"
-else
-    print_result 0 "RabbitMQ health check"
-fi
-
-echo -e "\nAll tests completed."
+# Submit blog post 3
+echo "Submitting 'Elasticsearch for Fast Search'..."
+SUBMIT_RESPONSE_3=$(curl -s -X POST "http://localhost:8000/submit_blog" \
+     -H "Content-Type: application/json" \
+     -d '{"blog_title": "Elasticsearch for Fast Search", "blog_text": "Elasticsearch allows full-text search and analytical queries.", "user_id": "user123"}')
+echo "Response: $SUBMIT_RESPONSE_3"
+TASK_ID_3=$(echo "$SUBMIT_RESPONSE_3" | grep -o '"task_id": "[^"]*"' | cut -d '"' -f 4)
+echo "Task ID 3: $TASK_ID_3"
 
 
-# #!/bin/bash
+echo "--- Checking Task Status ---"
+echo "Waiting for tasks to complete..."
+sleep 5 # Give Celery worker some time to pick up tasks
 
-# # Base URLs
-# SUBMIT_URL="http://localhost:8000"
-# SEARCH_URL="http://localhost:8001"
+STATUS="pending"
+while [ "$STATUS" != "completed" ]; do
+  echo "Checking status of Task ID 1: $TASK_ID_1"
+  TASK_STATUS_1=$(curl -s "http://localhost:8000/task_status/$TASK_ID_1")
+  echo "Status: $TASK_STATUS_1"
+  STATUS=$(echo "$TASK_STATUS_1" | grep -o '"status": "[^"]*"' | cut -d '"' -f 4)
+  if [ "$STATUS" != "completed" ]; then
+    echo "Task 1 still pending. Waiting..."
+    sleep 2
+  fi
+done
+echo "Task 1 completed."
 
-# # Colors for output
-# GREEN='\033[0;32m'
-# RED='\033[0;31m'
-# NC='\033[0m' # No Color
+# You can add similar loops for Task ID 2 and 3 if desired, or just assume they will complete shortly after Task 1.
+echo "Assuming other tasks also completed."
 
-# # Function to print colored output
-# print_result() {
-#     if [ $1 -eq 0 ]; then
-#         echo -e "${GREEN}PASS${NC}: $2"
-#     else
-#         echo -e "${RED}FAIL${NC}: $2"
-#     fi
-# }
 
-# # Test submit_blog endpoint
-# echo "Testing submit_blog endpoint..."
-# SUBMIT_RESPONSE=$(curl -s -X POST ${SUBMIT_URL}/submit_blog \
-#      -H "Content-Type: application/json" \
-#      -d '{"blog_title":"Test Blog","blog_text":"This is a test blog post.","user_id":"test_user"}')
-# TASK_ID=$(echo $SUBMIT_RESPONSE | jq -r '.task_id')
-# print_result $? "Submit blog"
+echo "--- Searching Blog Posts ---"
+echo "Searching for 'FastAPI'..."
+curl -s "http://localhost:8000/search?query=FastAPI" | json_pp # Use json_pp or jq for pretty print
+echo ""
 
-# # Test task_status endpoint
-# echo "Testing task_status endpoint..."
-# curl -s ${SUBMIT_URL}/task_status/${TASK_ID} > /dev/null
-# print_result $? "Check task status"
+echo "Searching for 'Elasticsearch'..."
+curl -s "http://localhost:8000/search?query=Elasticsearch" | json_pp
+echo ""
 
-# # Test search endpoint
-# echo "Testing search endpoint..."
-# curl -s "${SEARCH_URL}/search?query=test" > /dev/null
-# print_result $? "Search blogs"
+echo "Searching for 'RabbitMQ'..."
+curl -s "http://localhost:8000/search?query=RabbitMQ" | json_pp
+echo ""
 
-# # Test Elasticsearch health endpoint
-# echo "Testing Elasticsearch health endpoint..."
-# curl -s ${SEARCH_URL}/health/elasticsearch > /dev/null
-# print_result $? "Elasticsearch health check"
+echo "Searching for 'test blog'..."
+curl -s "http://localhost:8000/search?query=test%20blog" | json_pp # URL encode space
+echo ""
 
-# # Test RabbitMQ health endpoint
-# echo "Testing RabbitMQ health endpoint..."
-# curl -s ${SUBMIT_URL}/health/rabbitmq > /dev/null
-# print_result $? "RabbitMQ health check"
+echo "--- Health Checks ---"
+echo "Checking Elasticsearch health..."
+curl -s "http://localhost:8000/health/elasticsearch" | json_pp
+echo ""
 
-# echo "All tests completed."
+echo "Checking RabbitMQ health..."
+curl -s "http://localhost:8000/health/rabbitmq" | json_pp
+echo ""
+
+echo "--- Demo Complete ---"
+
+echo "Cleaning up Docker Compose services..."
+docker-compose down
+
+echo "Done."

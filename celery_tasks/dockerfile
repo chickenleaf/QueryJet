@@ -1,10 +1,17 @@
+# celery_tasks/dockerfile
 FROM python:3.9-slim
 
 WORKDIR /app
 
+# Copy only requirements and install them
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+# Copy the celery_tasks directory
+COPY celery_tasks /app/celery_tasks
+# Also copy the root-level __init__.py if it's crucial for imports,
+# but usually, packages should be self-contained for their internal imports.
+# Assuming celery_tasks is a top-level package that needs to be imported as such.
+COPY __init__.py /app/
 
-CMD ["celery", "-A", "celery_tasks.celery_app", "worker", "-P", "threads"]
+CMD ["celery", "-A", "celery_tasks.celery_app", "worker", "-P", "threads", "--loglevel=info"] # Added loglevel for better visibility

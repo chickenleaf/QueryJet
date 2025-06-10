@@ -11,11 +11,14 @@ A FastAPI-based application that utilizes Celery for asynchronous task processin
 
 ## Table of Contents
 
-- [Installation](#installation)
-- [Usage](#usage)
-- [Testing](#testing)
-- [Docker](#docker)
-- [API Endpoints](#api-endpoints)
+- [QueryJet](#queryjet)
+  - [Features](#features)
+  - [Table of Contents](#table-of-contents)
+  - [Installation](#installation)
+  - [Usage](#usage)
+  - [Testing](#testing)
+  - [Docker](#docker)
+  - [API Endpoints](#api-endpoints)
 
 ## Installation
 
@@ -24,8 +27,8 @@ To set up and run the **QueryJet** project locally, follow these steps:
 1. **Clone the Repository**
 
    ```bash
-   git clone https://github.com/chickenleaf/cloudSEK.git
-   cd cloudSEK
+   git clone https://github.com/chickenleaf/QueryJet.git
+   cd QueryJet
    ```
 
 2. **Create and Activate a Virtual Environment**
@@ -48,7 +51,7 @@ To set up and run the **QueryJet** project locally, follow these steps:
    Run the FastAPI application:
 
    ```bash
-   uvicorn app.main:app --reload
+   uvicorn main:app --reload
    ```
 
 2. **Start Celery Workers**

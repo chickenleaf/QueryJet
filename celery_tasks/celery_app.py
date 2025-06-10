@@ -2,8 +2,8 @@ from celery import Celery
 import os
 
 # Initialize Celery
-celery_app = Celery('celery_tasks', 
-                    broker=os.environ.get("RABBITMQ_URL", "amqp://rabbitmq"),
+celery_app = Celery('celery_tasks',
+                    broker=os.environ.get("RABBITMQ_URL", "amqp://guest:guest@localhost:5672//"),
                     backend='rpc://',
                     broker_connection_retry_on_startup=True)
 

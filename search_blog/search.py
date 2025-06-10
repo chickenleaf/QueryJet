@@ -19,20 +19,27 @@ else:
 
 @router.get("/search")
 async def search_blogs(query: str):
-    create_index_if_not_exists()
-    body = {
-        "query": {
-            "multi_match": {
-                "query": query,
-                "fields": ["blog_title", "blog_text"]
+    try:
+        create_index_if_not_exists()
+        body = {
+            "query": {
+                "multi_match": {
+                    "query": query,
+                    "fields": ["blog_title", "blog_text"]
+                }
             }
         }
-    }
-    result = es.search(index="blog_posts", body=body)
-    hits = result['hits']['hits']
-    blogs = [{"id": hit["_id"], "title": hit["_source"]["blog_title"], 
-              "text": hit["_source"]["blog_text"], "user_id": hit["_source"]["user_id"]} for hit in hits]
-    return {"results": blogs}
+        result = es.search(index="blog_posts", body=body)
+        hits = result['hits']['hits']
+        blogs = [{"id": hit["_id"],
+                 "title": hit["_source"]["blog_title"],
+                 "text": hit["_source"]["blog_text"],
+                 "user_id": hit["_source"]["user_id"]}
+                for hit in hits]
+        return {"results": blogs}
+    except Exception as e:
+        raise HTTPException(status_code=500,
+                          detail=f"Search error: {str(e)}")
 
 @router.get("/health/elasticsearch")
 async def elasticsearch_health():
