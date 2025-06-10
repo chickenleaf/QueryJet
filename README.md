@@ -1,184 +1,231 @@
-# QueryJet
+# QueryJet: A Lightning-Fast Blog API
 
-A FastAPI-based application that utilizes Celery for asynchronous task processing with rabbitMQ as broker and Elasticsearch for indexing and searching blog posts. The project includes Docker support for containerization and deployment.
+QueryJet is a high-performance, scalable blog API designed for efficient submission and search of blog posts. It showcases a modern microservices architecture, leveraging asynchronous processing and robust search capabilities to deliver a responsive user experience.
 
-## Features
+---
 
-- **FastAPI**: Enables fast and efficient API development with easy-to-use asynchronous features.
-- **Celery**: Effectively manages background tasks and scales with system demands.
-- **Elasticsearch**: Provides quick search and indexing capabilities for large data sets.
-- **RabbitMQ**: Offers reliable message brokering and scalable task distribution.
+## ✨ Features
 
-## Table of Contents
+* **FastAPI Backend:** Built with FastAPI for high-performance and easy-to-define API endpoints.
+* **Asynchronous Task Processing:** Uses Celery to offload heavy operations (like indexing) to background workers, ensuring the API remains responsive.
+* **Reliable Message Broker:** Integrates RabbitMQ as a robust message queue for Celery, guaranteeing task delivery and processing.
+* **Powerful Full-Text Search:** Employs Elasticsearch for rapid and efficient indexing and retrieval of blog posts with advanced search functionalities.
+* **Containerized Development:** Utilizes Docker Compose for a consistent and easily reproducible local development environment.
+* **Kubernetes Ready:** Designed with Kubernetes deployment in mind, including YAML configurations for production-grade orchestration (optional demo).
 
-- [QueryJet](#queryjet)
-  - [Features](#features)
-  - [Table of Contents](#table-of-contents)
-  - [Installation](#installation)
-  - [Usage](#usage)
-  - [Testing](#testing)
-  - [Docker](#docker)
-  - [API Endpoints](#api-endpoints)
+---
 
-## Installation
+## 🚀 Getting Started
 
-To set up and run the **QueryJet** project locally, follow these steps:
+These instructions will get you a copy of the project up and running on your local machine for development and testing purposes.
 
-1. **Clone the Repository**
+### Prerequisites
 
-   ```bash
-   git clone https://github.com/chickenleaf/QueryJet.git
-   cd QueryJet
-   ```
+* [Docker](https://www.docker.com/get-started) (Docker Desktop or Docker Engine)
+* `curl` (for API testing, or you can use Postman/Insomnia)
 
-2. **Create and Activate a Virtual Environment**
+### Local Development with Docker Compose
 
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
+This is the quickest way to get QueryJet running locally.
 
-3. **Install Dependencies**
+1.  **Clone the repository:**
 
-   ```bash
-   pip install -r requirements.txt
-   ```
+    ```bash
+    git clone [https://github.com/chickenleaf/queryjet.git](https://github.com/chickenleaf/queryjet.git) 
+    cd queryjet
+    ```
 
-## Usage
+2.  **Build and start services:**
+    This command will build the Docker images and start all the services defined in `docker-compose.yml`. This might take a few minutes on the first run.
 
-1. **Start the Application**
+    ```bash
+    sudo docker compose up --build -d
+    ```
 
-   Run the FastAPI application:
+3.  **Verify services are running:**
 
-   ```bash
-   uvicorn main:app --reload
-   ```
+    ```bash
+    sudo docker compose ps
+    ```
+    You should see `rabbitmq`, `elasticsearch`, `celery_worker`, and `api` listed as `Up`.
 
-2. **Start Celery Workers**
+4.  **Optional: Check service health (after a short wait for services to initialize):**
 
-   Start Celery to process background tasks:
+    * **RabbitMQ Management UI:**
+        ```bash
+        echo "RabbitMQ Management UI: http://localhost:15672 (guest/guest)"
+        ```
+    * **Elasticsearch Health:**
+        ```bash
+        curl http://localhost:9200/_cluster/health?pretty
+        ```
+        (Expect status `green` or `yellow`)
 
-   ```bash
-   celery -A celery_tasks.celery_app worker -P threads
-   ```
+---
 
-3. **Access the Application**
+## 💡 Usage
 
-   Open your web browser and navigate to `http://localhost:8000` to interact with the API.
+Once the services are up, you can interact with the QueryJet API. The FastAPI application will be accessible at `http://localhost:8000`.
 
-## Testing
+### Submitting a Blog Post
 
-1. **Run Unit Tests**
+Blog posts are submitted asynchronously. The API will return a `task_id` immediately, and the actual indexing into Elasticsearch will happen in the background via Celery.
 
-   Execute the test cases using:
+```bash
+# Submit your first blog post
+curl -X POST "http://localhost:8000/submit_blog" \
+     -H "Content-Type: application/json" \
+     -d '{"blog_title": "My First FastAPI Blog", "blog_text": "This is a test blog post for demonstration purposes.", "user_id": "user123"}' | tee submit_response_1.json
 
-   ```bash
-   python -m unittest tests.test_main
-   ```
+# Submit a second blog post
+curl -X POST "http://localhost:8000/submit_blog" \
+     -H "Content-Type: application/json" \
+     -d '{"blog_title": "Understanding Celery & RabbitMQ", "blog_text": "Celery is a powerful distributed task queue. RabbitMQ is a robust message broker.", "user_id": "user456"}' | tee submit_response_2.json
+```
 
-2. **Run Shell Script**
+### Checking Task Status
 
-   Use the provided shell script for additional test tasks:
+You can check the status of a background indexing task using the `task_id` returned from the submission endpoint.
 
-   ```bash
-   bash tests/test.sh
-   ```
+First, extract a `task_id` from one of your submission responses (e.g., `submit_response_1.json`):
 
-## Docker
+```bash
+TASK_ID=$(cat submit_response_1.json | grep -o '"task_id": "[^"]*"' | cut -d '"' -f 4)
+echo "Checking status for task_id: $TASK_ID"
+```
 
-1. **Build the Docker Image**
+Then, query the status endpoint:
 
-   ```bash
-   docker build -t cloudsek .
-   ```
+```bash
+curl "http://localhost:8000/task_status/$TASK_ID"
+# Keep running this command until the status changes to "completed"
+```
 
-2. **Run the Docker Container**
+### Searching for Blog Posts
 
-   ```bash
-   docker-compose up
-   ```
+Once blog posts are indexed, you can perform full-text searches.
 
-   This command will start the application and Celery workers in Docker containers.
+```bash
+curl "http://localhost:8000/search?query=FastAPI"
+echo ""
+curl "http://localhost:8000/search?query=Elasticsearch"
+echo ""
+curl "http://localhost:8000/search?query=test blog"
+echo ""
+curl "http://localhost:8000/search?query=RabbitMQ"
+echo ""
+```
 
-## API Endpoints
+### API Health Checks
 
-- **Submit Blog Post**
+You can verify the connectivity of the API to its dependencies:
 
-  `POST /submit_blog`
+```bash
+curl http://localhost:8000/health/elasticsearch
+curl http://localhost:8000/health/rabbitmq
+```
 
-  Submits a blog post for indexing. Requires a JSON body with `blog_title`, `blog_text`, and `user_id`.
+---
 
-  **Response:**
+## 🛠️ Project Structure
 
-  ```json
-  {
-    "message": "Blog post submitted successfully",
-    "task_id": "<task_id>"
-  }
-  ```
+```
+.
+├── celery_tasks/             # Celery application setup and background tasks
+│   ├── celery_app.py         # Celery instance configuration
+│   └── tasks.py              # Celery tasks (e.g., indexing blog posts)
+├── kubernetes/               # Kubernetes deployment configurations (optional)
+│   ├── ...                   # YAML files for deployments, services, configmaps
+├── search_blog/              # Search API module
+│   └── search.py             # FastAPI endpoint for searching blogs
+├── submit_blog/              # Submit API module
+│   └── submit.py             # FastAPI endpoint for submitting blogs
+├── docker-compose.yml        # Orchestrates all services for local development
+├── main.py                   # Main FastAPI application entry point
+├── requirements.txt          # Python dependencies
+└── ...                       # Other project files (tests, Dockerfiles per service)
+```
 
-- **Check Task Status**
+---
 
-  `GET /task_status/{task_id}`
+## 🧹 Cleanup
 
-  Checks the status of a Celery task.
+To stop and remove all Docker Compose services and their associated networks:
 
-  **Response:**
+```bash
+sudo docker compose down
+# Optional: To also remove Elasticsearch data volumes
+# sudo docker volume rm queryjet_esdata
+```
 
-  ```json
-  {
-    "status": "completed",
-    "result": "<result>"
-  }
-  ```
+---
 
-- **Search Blogs**
+## ☁️ Kubernetes Deployment (Optional)
 
-  `GET /search?query=<query>`
+QueryJet is also designed for deployment on Kubernetes for production-grade orchestration, showcasing robust communication between microservices. The `kubernetes/` directory contains all necessary YAML configurations.
 
-  Searches for blogs in Elasticsearch based on the provided query string.
+### Deploying to Kubernetes
 
-  **Response:**
+**(Requires a running Kubernetes cluster, e.g., MiniKube or Docker Desktop's Kubernetes enabled)**
 
-  ```json
-  {
-    "results": [
-      {
-        "id": "<id>",
-        "title": "<blog_title>",
-        "text": "<blog_text>",
-        "user_id": "<user_id>"
-      }
-    ]
-  }
-  ```
+1.  **Verify Kubernetes cluster info:**
 
-- **Check Elasticsearch Health**
+    ```bash
+    kubectl cluster-info
+    ```
 
-  `GET /health/elasticsearch`
+2.  **Apply Kubernetes manifests:**
 
-  Checks the health of the Elasticsearch connection.
+    ```bash
+    kubectl apply -f kubernetes/configmap.yaml
+    kubectl apply -f kubernetes/services.yaml
+    kubectl apply -f kubernetes/rabbitmq-deployment.yaml
+    kubectl apply -f kubernetes/elasticsearch-deployment.yaml
+    kubectl apply -f kubernetes/celery-tasks-deployment.yaml
+    kubectl apply -f kubernetes/submit-blog-deployment.yaml
+    kubectl apply -f kubernetes/search-blog-deployment.yaml
+    ```
 
-  **Response:**
+3.  **Check deployment status:**
 
-  ```json
-  {
-    "status": "Elasticsearch is connected"
-  }
-  ```
+    ```bash
+    kubectl get pods
+    kubectl get svc
+    ```
 
-- **Check RabbitMQ Health**
+4.  **Accessing the API in Kubernetes:**
+    * If using **Ingress**: Get the Ingress IP (`kubectl get ingress`) and use the configured paths.
+    * If **port-forwarding**:
+        ```bash
+        kubectl port-forward service/submit-blog-service 8001:80 &
+        kubectl port-forward service/search-blog-service 8002:80 &
+        ```
+        Then use `http://localhost:8001/submit_blog` and `http://localhost:8002/search?query=...`
 
-  `GET /health/rabbitmq`
+### Cleaning Up Kubernetes Resources
 
-  Checks the health of the RabbitMQ connection used by Celery.
+```bash
+kubectl delete -f kubernetes/submit-blog-deployment.yaml
+kubectl delete -f kubernetes/search-blog-deployment.yaml
+kubectl delete -f kubernetes/celery-tasks-deployment.yaml
+kubectl delete -f kubernetes/elasticsearch-deployment.yaml
+kubectl delete -f kubernetes/rabbitmq-deployment.yaml
+kubectl delete -f kubernetes/services.yaml
+kubectl delete -f kubernetes/configmap.yaml
+# Optional: If you created persistent volumes, you might need to delete them explicitly
+# kubectl delete pvc <your-pvc-name>
+```
 
-  **Response:**
+---
 
-  ```json
-  {
-    "status": "RabbitMQ is connected"
-  }
-  ```
+## 🤝 Contributing
 
+Contributions are welcome! If you have suggestions or find issues, please open an issue or submit a pull request.
 
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the `LICENSE` file for details (you might want to add a LICENSE file to your repo).
+
+---
